@@ -40,142 +40,134 @@ namespace SettingsSystem.DataStorage
         private static GeneralData generalData = new();
         private static CustomizationData customizationData = new();
 
-        private static readonly string myFileNameExtension = ".xml";
+        private static readonly string fileExtension = ".xml";
+
+        public static Action OnSaved { get; private set; }
+        public static Action OnLoaded { get; private set; }
+        public static Action OnDeleted { get; private set; }
 
         public static PLayerData PLayerData { get => pLayerData ?? new(); set => pLayerData = value; }
         public static GeneralData GeneralData { get => generalData ?? new(); set => generalData = value; }
         public static CustomizationData CustomizationData { get => customizationData ?? new(); set => customizationData = value; }
 
+        private static readonly string DataPath = Application.persistentDataPath;
+        private static string StreamPath(string fileName, string dataPath) => dataPath + "/" + fileName + fileExtension;
+        private static string StreamPath(DocType fileType, string dataPath) => dataPath + "/" + GetFileName(fileType) + fileExtension;
+
         public static void Save<T>(T dataToSave, string fileName)
         {
-            string dataPath = Application.persistentDataPath;
-
             var serializer = new XmlSerializer(typeof(T));
-            var stream = new FileStream(dataPath + "/" + fileName + myFileNameExtension, FileMode.Create);
+            var stream = new FileStream(StreamPath(fileName, DataPath), FileMode.Create);
             serializer.Serialize(stream, dataToSave);
             stream.Close();
 
+            OnSaved?.Invoke();
             Debug.Log("Saved");
-
         }
 
         public static void Save<T>(T dataToSave, DocType fileType)
         {
-            string dataPath = Application.persistentDataPath;
-
             var serializer = new XmlSerializer(typeof(T));
-            var stream = new FileStream(dataPath + "/" + GetFileName(fileType) + myFileNameExtension, FileMode.Create);
+            var stream = new FileStream(StreamPath(fileType, DataPath), FileMode.Create);
             serializer.Serialize(stream, dataToSave);
             stream.Close();
 
+            OnSaved?.Invoke();
             Debug.Log("Saved");
-
         }
 
         public static void Load<T>(out T dataToLoad, string fileName) where T : class, new()
         {
-            string dataPath = Application.persistentDataPath;
-
-            if (System.IO.File.Exists(dataPath + "/" + fileName + myFileNameExtension))
+            if (File.Exists(StreamPath(fileName, DataPath)))
             {
                 var serializer = new XmlSerializer(typeof(T));
-                var stream = new FileStream(dataPath + "/" + fileName + myFileNameExtension, FileMode.Open);
+                var stream = new FileStream(StreamPath(fileName, DataPath), FileMode.Open);
                 dataToLoad = serializer.Deserialize(stream) as T;
                 stream.Close();
 
+                OnLoaded?.Invoke();
                 Debug.Log("Loaded");
+                return;
             }
-            else
-            {
-                dataToLoad = new T();
-            }
+
+            dataToLoad = new T();
         }
 
         public static void Load<T>(out T dataToLoad, DocType fileType) where T : class, new()
         {
-            string dataPath = Application.persistentDataPath;
-
-            if (System.IO.File.Exists(dataPath + "/" + GetFileName(fileType) + myFileNameExtension))
+            if (File.Exists(StreamPath(fileType, DataPath)))
             {
                 var serializer = new XmlSerializer(typeof(T));
-                var stream = new FileStream(dataPath + "/" + GetFileName(fileType) + myFileNameExtension, FileMode.Open);
+                var stream = new FileStream(StreamPath(fileType, DataPath), FileMode.Open);
                 dataToLoad = serializer.Deserialize(stream) as T;
                 stream.Close();
 
+                OnLoaded?.Invoke();
                 Debug.Log("Loaded");
+                return;
             }
-            else
-            {
-                dataToLoad = new T();
-            }
+
+            dataToLoad = new T();
         }
 
         public static T Load<T>(string fileName) where T : class, new()
         {
-            string dataPath = Application.persistentDataPath;
-
-            if (System.IO.File.Exists(dataPath + "/" + fileName + myFileNameExtension))
+            if (File.Exists(StreamPath(fileName, DataPath)))
             {
                 T data;
 
                 var serializer = new XmlSerializer(typeof(T));
-                var stream = new FileStream(dataPath + "/" + fileName + myFileNameExtension, FileMode.Open);
+                var stream = new FileStream(StreamPath(fileName, DataPath), FileMode.Open);
                 data = serializer.Deserialize(stream) as T;
                 stream.Close();
 
+                OnLoaded?.Invoke();
                 Debug.Log("Loaded");
-
                 return data;
             }
-            else
-            {
-                return new T();
-            }
+
+            return new T();
         }
+
 
         public static T Load<T>(DocType fileType) where T : class, new()
         {
-            string dataPath = Application.persistentDataPath;
-
-            if (System.IO.File.Exists(dataPath + "/" + GetFileName(fileType) + myFileNameExtension))
+            if (File.Exists(StreamPath(fileType, DataPath)))
             {
                 T data;
 
                 var serializer = new XmlSerializer(typeof(T));
-                var stream = new FileStream(dataPath + "/" + GetFileName(fileType) + myFileNameExtension, FileMode.Open);
+                var stream = new FileStream(StreamPath(fileType, DataPath), FileMode.Open);
                 data = serializer.Deserialize(stream) as T;
-                stream.Close();
+                stream.Dispose();
 
+                OnLoaded?.Invoke();
                 Debug.Log("Loaded");
-
                 return data;
             }
-            else
-            {
-                return new T();
-            }
+
+            return new T();
         }
 
-        public static void DeleteSavedData<T>(string fileName) where T : class
+
+        public static void DeleteSavedData(string fileName)
         {
-            string dataPath = Application.persistentDataPath;
-
-            if (System.IO.File.Exists(dataPath + "/" + fileName + myFileNameExtension))
+            if (File.Exists(StreamPath(fileName, DataPath)))
             {
-                File.Delete(dataPath + "/" + fileName + myFileNameExtension);
+                File.Delete(StreamPath(fileName, DataPath));
 
+                OnDeleted?.Invoke();
                 Debug.Log("Deleted data");
             }
         }
 
-        public static void DeleteSavedData<T>(DocType fileType) where T : class
+        public static void DeleteSavedData(DocType fileType)
         {
-            string dataPath = Application.persistentDataPath;
-
-            if (System.IO.File.Exists(dataPath + "/" + GetFileName(fileType) + myFileNameExtension))
+            if (File.Exists(StreamPath(fileType, DataPath)))
             {
-                File.Delete(dataPath + "/" + GetFileName(fileType) + myFileNameExtension);
+                File.Delete(StreamPath(fileType, DataPath));
 
+                OnDeleted?.Invoke();
                 Debug.Log("Deleted data");
             }
         }
